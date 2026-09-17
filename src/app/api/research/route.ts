@@ -106,7 +106,8 @@ export async function POST(request: NextRequest) {
             maxBudget,
             refundAddress,
             (msg) => pushUpdate('progress', msg),
-            request.headers.get('cookie') || undefined
+            request.headers.get('cookie') || undefined,
+            user.id
           )
 
           await supabase

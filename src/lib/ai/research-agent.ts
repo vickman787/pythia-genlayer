@@ -223,7 +223,8 @@ export async function runResearchAgent(
   initialBudget: number,
   walletAddress: string | undefined,
   onProgress?: (msg: string) => void,
-  cookieHeader?: string
+  cookieHeader?: string,
+  userId?: string
 ) {
   let totalSpentOnSources = 0;
   const platformFee = 0.20; // platform revenue per prompt
@@ -345,36 +346,24 @@ export async function runResearchAgent(
         if (!source.recipientAddress) throw new Error('Source creator has no wallet address')
         const { payload } = await authorizePayment(sessionId, source.id, parseFloat(source.price_usdc), source.recipientAddress)
 
-        const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'
-        const baseUrl = rawAppUrl.startsWith('http') ? rawAppUrl : `https://${rawAppUrl}`
-        const licenseRes = await fetch(`${baseUrl}/api/sources/${source.id}/license`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(cookieHeader ? { 'Cookie': cookieHeader } : {})
-          },
-          body: JSON.stringify(payload)
+        const { settleCitationLicense } = await import('@/lib/payments/settlement')
+        const receipt = await settleCitationLicense({
+          sourceId: source.id,
+          authorizationId: payload.authorizationId,
+          amount: payload.amount,
+          userId,
         })
-
-        const licenseText = await licenseRes.text()
-        let licenseData: any
-        try {
-          licenseData = JSON.parse(licenseText)
-        } catch {
-          licenseData = { error: licenseText.slice(0, 500) }
-        }
-        if (!licenseRes.ok) throw new Error(licenseData.error || `License settlement failed (${licenseRes.status})`)
 
         purchasedSources.push({
           id: source.id,
           title: source.title,
           url: source.url,
           content: source.content,
-          receipt: licenseData.receipt
+          receipt,
         })
         const price = parseFloat(source.price_usdc);
         totalSpentOnSources += price;
-        if (onProgress) onProgress(`Payment Settled. Gateway Batch ID: ${licenseData.receipt.gatewaySettlementId}`)
+        if (onProgress) onProgress(`Payment Settled. Gateway Batch ID: ${receipt.gatewaySettlementId}`)
       } catch (e: any) {
         console.error(`Failed to purchase source ${source.id}:`, e.message)
         if (onProgress) onProgress(`Payment execution failed for ${source.title}.`)
