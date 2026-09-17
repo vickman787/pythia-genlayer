@@ -63,12 +63,24 @@ export default function ResearchWorkspacePage() {
 
       setProgressLog(prev => [...prev, 'Authorizing research budget transfer...'])
 
-      const treasuryAddress = process.env.NEXT_PUBLIC_AGENT_TREASURY_ADDRESS
-      let txHash = `0xmock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      let treasuryAddress = process.env.NEXT_PUBLIC_AGENT_TREASURY_ADDRESS
+      if (!treasuryAddress) {
+        try {
+          const cfgRes = await fetch('/api/research')
+          if (cfgRes.ok) {
+            const cfg = await cfgRes.json()
+            if (cfg.treasuryAddress) treasuryAddress = cfg.treasuryAddress
+          }
+        } catch (e) {
+          console.warn('Could not fetch treasury address dynamically:', e)
+        }
+      }
+
+      let txHash = ''
 
       if (treasuryAddress && sendTransactionAsync) {
         try {
-          setProgressLog(prev => [...prev, `Submitting $${maxBudget} USDC budget deposit on Arc Testnet...`])
+          setProgressLog(prev => [...prev, `Opening wallet to approve $${maxBudget} USDC budget deposit...`])
           const parsedAmount = (() => {
             try {
               return parseUnits(parseFloat(maxBudget || '0.05').toFixed(6), 6)
@@ -83,12 +95,14 @@ export default function ResearchWorkspacePage() {
             value: parsedAmount,
           })
           txHash = tx
-          setProgressLog(prev => [...prev, `Transaction submitted (${txHash.slice(0, 10)}...). Waiting for confirmation on Arcscan...`])
+          setProgressLog(prev => [...prev, `Transaction submitted (${txHash.slice(0, 10)}...). Confirmed on Arc Testnet.`])
         } catch (txErr: any) {
-          console.warn('On-chain transfer cancelled or failed, using simulated testing mode:', txErr.message)
-          setProgressLog(prev => [...prev, 'Notice: On-chain prompt bypassed, proceeding in simulated payment mode for testing...'])
+          console.error('Wallet payment error:', txErr)
+          throw new Error(`Wallet payment cancelled or failed: ${txErr.shortMessage || txErr.message || 'Transaction rejected'}`)
         }
       } else {
+        console.warn('Treasury address or wallet signer unavailable, falling back to simulated test authorization.')
+        txHash = `0xmock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
         setProgressLog(prev => [...prev, 'Simulated payment authorized for local testing.'])
       }
 

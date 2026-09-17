@@ -21,6 +21,14 @@ if (typeof (BigInt.prototype as any).toJSON === 'undefined') {
   }
 }
 
+export async function GET() {
+  const treasuryAddress =
+    process.env.NEXT_PUBLIC_AGENT_TREASURY_ADDRESS ||
+    process.env.AGENT_TREASURY_ADDRESS ||
+    ''
+  return NextResponse.json({ treasuryAddress })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const userClient = await createClient()
