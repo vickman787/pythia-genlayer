@@ -16,7 +16,13 @@ export function getGenLayerClient() {
   const networkName = process.env.GENLAYER_NETWORK
   let chain: any = GENLAYER_CHAIN
 
-  if (networkName && networkName !== 'studioDevnet' && networkName !== 'studio-dev' && networkName !== 'studionext') {
+  if (
+    networkName &&
+    networkName !== 'studionet' &&
+    networkName !== 'studioDevnet' &&
+    networkName !== 'studio-dev' &&
+    networkName !== 'studionext'
+  ) {
     const namedChain = (chains as Record<string, unknown>)[networkName]
     if (namedChain) {
       chain = namedChain

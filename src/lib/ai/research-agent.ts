@@ -345,7 +345,8 @@ export async function runResearchAgent(
         if (!source.recipientAddress) throw new Error('Source creator has no wallet address')
         const { payload } = await authorizePayment(sessionId, source.id, parseFloat(source.price_usdc), source.recipientAddress)
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'
+        const baseUrl = rawAppUrl.startsWith('http') ? rawAppUrl : `https://${rawAppUrl}`
         const licenseRes = await fetch(`${baseUrl}/api/sources/${source.id}/license`, {
           method: 'POST',
           headers: {

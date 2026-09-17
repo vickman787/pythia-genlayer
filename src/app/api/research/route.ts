@@ -14,6 +14,13 @@ const researchRequestSchema = z.object({
   userToken: z.string().optional(),
 })
 
+// Polyfill BigInt serialization globally for serverless route
+if (typeof (BigInt.prototype as any).toJSON === 'undefined') {
+  ;(BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const userClient = await createClient()
@@ -73,7 +80,15 @@ export async function POST(request: NextRequest) {
         const encoder = new TextEncoder()
 
         const pushUpdate = (type: string, payload: any) => {
-          controller.enqueue(encoder.encode(JSON.stringify({ type, payload }) + '\n'))
+          try {
+            const serialized = JSON.stringify({ type, payload }, (_key, value) =>
+              typeof value === 'bigint' ? value.toString() : value
+            )
+            controller.enqueue(encoder.encode(serialized + '\n'))
+          } catch (e: any) {
+            console.error('Failed to serialize stream chunk:', e)
+            controller.enqueue(encoder.encode(JSON.stringify({ type: 'progress', payload: String(payload) }) + '\n'))
+          }
         }
 
         try {

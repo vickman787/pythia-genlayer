@@ -23,6 +23,25 @@
 import { getRelayerClient } from './relayer'
 import { TransactionStatus, type CalldataEncodable } from 'genlayer-js/types'
 
+// Global polyfill for BigInt JSON serialization in serverless runtimes
+if (typeof (BigInt.prototype as any).toJSON === 'undefined') {
+  ;(BigInt.prototype as any).toJSON = function () {
+    return this.toString()
+  }
+}
+
+export function safeJsonStringify(obj: any, indent?: number): string {
+  try {
+    return JSON.stringify(
+      obj,
+      (_key, value) => (typeof value === 'bigint' ? value.toString() : value),
+      indent
+    )
+  } catch {
+    return String(obj)
+  }
+}
+
 export interface GenLayerSourceInput {
   id: string
   title: string
@@ -215,7 +234,7 @@ export async function runGenLayerResearch(
     if (decoded) return withConsensusReceipt(decoded, receipt, contractAddress, sources)
   }
 
-  console.error('GenLayer raw receipt (unexpected shape):', JSON.stringify(result, null, 2))
+  console.error('GenLayer raw receipt (unexpected shape):', safeJsonStringify(result, 2))
   throw new Error(
     `GenLayer contract returned an unexpected result shape for tx ${receipt}. Raw receipt logged to the server console.`
   )
