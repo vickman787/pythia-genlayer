@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useDisconnect } from "wagmi";
@@ -27,12 +27,14 @@ export function Navigation({ initialUser }: { initialUser?: any }) {
   const router = useRouter();
   const supabase = createClient();
 
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const { disconnect } = useDisconnect();
+  const wasConnectedRef = useRef(false);
 
-  // Sync Supabase session whenever EVM address changes
+  // Sync Supabase session whenever EVM address changes, and redirect to homepage on disconnect
   useEffect(() => {
     if (isConnected && address) {
+      wasConnectedRef.current = true;
       const normalized = address.toLowerCase();
       localStorage.setItem('circle_wallet_address', normalized);
       window.dispatchEvent(new Event('wallet_changed'));
@@ -48,12 +50,41 @@ export function Navigation({ initialUser }: { initialUser?: any }) {
         }
       })
       .catch(console.error);
-    } else if (!isConnected) {
+    } else if ((status === 'disconnected' || !isConnected) && wasConnectedRef.current) {
+      // Wallet was previously connected and has now been disconnected
+      wasConnectedRef.current = false;
       localStorage.removeItem('circle_wallet_address');
       window.dispatchEvent(new Event('wallet_changed'));
-      supabase.auth.signOut().then(() => router.refresh()).catch(() => {});
+      supabase.auth.signOut().catch(() => {}).finally(() => {
+        // Return to homepage and refresh the page completely
+        if (window.location.pathname === '/') {
+          window.location.reload();
+        } else {
+          window.location.href = '/';
+        }
+      });
     }
-  }, [isConnected, address, router, supabase]);
+  }, [isConnected, status, address, router, supabase]);
+
+  // Proactively refresh Supabase session when user returns to tab after idle
+  useEffect(() => {
+    const refreshSessionOnFocus = () => {
+      if (document.visibilityState === 'visible' && isConnected && address) {
+        fetch('/api/auth/wallet-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: address.toLowerCase() }),
+        }).catch(console.error);
+      }
+    };
+
+    window.addEventListener('focus', refreshSessionOnFocus);
+    document.addEventListener('visibilitychange', refreshSessionOnFocus);
+    return () => {
+      window.removeEventListener('focus', refreshSessionOnFocus);
+      document.removeEventListener('visibilitychange', refreshSessionOnFocus);
+    };
+  }, [isConnected, address]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

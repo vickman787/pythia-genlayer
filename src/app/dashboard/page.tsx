@@ -14,7 +14,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { readApiJson } from '@/lib/http/client'
+import { readApiJson, fetchWithAuthRetry } from '@/lib/http/client'
 import { useAccount } from 'wagmi'
 
 type DashboardData = {
@@ -86,7 +86,7 @@ export default function DashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/creator/dashboard', { cache: 'no-store' })
+      const response = await fetchWithAuthRetry('/api/creator/dashboard', { cache: 'no-store' }, walletAddress)
       const result = await readApiJson<any>(response)
       if (!response.ok) throw new Error(result.error || 'Failed to load dashboard')
       setData(result)
@@ -132,11 +132,11 @@ export default function DashboardPage() {
     setFeeUpdateError(null)
 
     try {
-      const res = await fetch(`/api/sources/${sourceId}`, {
+      const res = await fetchWithAuthRetry(`/api/sources/${sourceId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ price: parsedPrice }),
-      })
+      }, walletAddress)
       const result = await readApiJson<any>(res)
 
       if (!res.ok) {
@@ -170,9 +170,9 @@ export default function DashboardPage() {
     setDeleteError(null)
 
     try {
-      const res = await fetch(`/api/sources/${deletingSource.id}`, {
+      const res = await fetchWithAuthRetry(`/api/sources/${deletingSource.id}`, {
         method: 'DELETE',
-      })
+      }, walletAddress)
       const result = await readApiJson<any>(res)
 
       if (!res.ok) {

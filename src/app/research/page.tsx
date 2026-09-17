@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react'
 import { useAccount, useSendTransaction } from 'wagmi'
 import { parseUnits } from 'viem'
 import { arcTestnet } from '@/lib/chains/arcTestnet'
+import { fetchWithAuthRetry } from '@/lib/http/client'
 
 export default function ResearchWorkspacePage() {
   const [query, setQuery] = useState('')
@@ -21,14 +22,17 @@ export default function ResearchWorkspacePage() {
   interface HistoryItem {
     id?: string;
     query: string;
-    timestamp: string;
+    timestamp?: string;
+    sources_cited?: number;
+    total_cost_usdc?: number;
+    created_at?: string;
     result: any;
   }
   const [history, setHistory] = useState<HistoryItem[]>([])
 
   useEffect(() => {
     if (walletAddress) {
-      fetch('/api/research/history')
+      fetchWithAuthRetry('/api/research/history', undefined, walletAddress)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data?.history) setHistory(data.history)
@@ -40,7 +44,7 @@ export default function ResearchWorkspacePage() {
   const handleDeleteHistory = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`/api/research/history?id=${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuthRetry(`/api/research/history?id=${id}`, { method: 'DELETE' }, walletAddress);
       if (res.ok) {
         setHistory(prev => prev.filter(item => item.id !== id));
       }
@@ -248,7 +252,7 @@ export default function ResearchWorkspacePage() {
                   className="flex-1 flex flex-col gap-1 text-left outline-none pr-4 cursor-pointer"
                 >
                   <div className="font-mono text-sm text-[var(--color-ink)] truncate max-w-[200px] sm:max-w-xs md:max-w-lg">{item.query}</div>
-                  <div className="text-xs text-[var(--color-faint)] font-mono">{new Date(item.timestamp).toLocaleString()}</div>
+                  <div className="text-xs text-[var(--color-faint)] font-mono">{new Date(item.timestamp || item.created_at || Date.now()).toLocaleString()}</div>
                 </button>
                 {item.id && (
                   <button

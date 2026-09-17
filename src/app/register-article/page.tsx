@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { ShieldCheck, Copy, Check, AlertCircle } from 'lucide-react'
-import { readApiJson } from '@/lib/http/client'
+import { readApiJson, fetchWithAuthRetry } from '@/lib/http/client'
 
 export default function RegisterArticlePage() {
   const [url, setUrl] = useState('')
@@ -62,11 +62,11 @@ export default function RegisterArticlePage() {
     setSuccess(false)
 
     try {
-      const res = await fetch('/api/sources/register', {
+      const res = await fetchWithAuthRetry('/api/sources/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, price: parseFloat(price) }),
-      })
+      }, walletAddress)
 
       const data = await readApiJson<any>(res)
 
