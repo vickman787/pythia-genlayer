@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@700&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width:1200px; height:400px;
+    background:#070707;
+    display:flex; align-items:center; justify-content:center;
+    gap: 48px;
+    font-family:'IBM Plex Sans', sans-serif;
+    position:relative;
+    overflow:hidden;
+  }
+  body::before {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(circle at 35% 50%, rgba(17,15,255,0.3) 0%, transparent 65%);
+  }
+  .title { font-size: 88px; font-weight:700; color:#F5F5F5; letter-spacing: -0.02em; }
+  .badge {
+    font-family:'IBM Plex Mono', monospace;
+    font-size:16px; font-weight:600;
+    color:#00FF66; letter-spacing:0.18em;
+    margin-top:10px;
+    background:rgba(0,255,102,0.08);
+    border:1px solid rgba(0,255,102,0.3);
+    display:inline-block;
+    padding:6px 14px;
+    border-radius:2px;
+  }
+</style>
+</head>
+<body>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="200" height="200">
+  <defs>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2B28FF" />
+      <stop offset="100%" stop-color="#0C09E0" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" fill="url(#blueGrad)" />
+  <path d="M133,172 h96 v72 h-48 v32 h48 v64 h-96 z" fill="#FFFFFF" />
+  <path d="M283,172 h96 v72 h-48 v32 h48 v64 h-96 z" fill="#FFFFFF" />
+</svg>
+  <div style="position:relative; z-index:2;">
+    <div class="title">PYTHIA</div>
+    <div class="badge">GENLAYER STUDIO NEXT · CHAIN 61997</div>
+  </div>
+</body>
+</html>
