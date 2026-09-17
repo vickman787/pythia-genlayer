@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pythia / CiteFlow — GenLayer Studio Next Demo Video Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cobalt: #110FFF;
+    --cobalt-glow: rgba(17,15,255,0.4);
+    --void: #070707;
+    --panel: #101010;
+    --panel-deep: #0B0B0B;
+    --ceramic: #F5F5F5;
+    --chassis: #CACACA;
+    --asphalt: #606060;
+    --success: #00FF66;
+    --rust: #FF2B2B;
+    --line: rgba(245,245,245,0.12);
+  }
+
+  body {
+    background: var(--void);
+    color: var(--ceramic);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  header.studio-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 28px;
+    background: rgba(16,16,16,0.95);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .badge {
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    background: rgba(17,15,255,0.15);
+    border: 1px solid var(--cobalt);
+    color: #9C9BFF;
+  }
+
+  .badge-live {
+    background: rgba(0,255,102,0.12);
+    border: 1px solid var(--success);
+    color: var(--success);
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  select.voice-select {
+    background: var(--panel-deep);
+    color: var(--ceramic);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    max-width: 240px;
+  }
+  select.voice-select:focus {
+    border-color: var(--cobalt);
+  }
+
+  button.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--cobalt);
+    color: #fff;
+    border: 1px solid var(--cobalt);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 16px var(--cobalt-glow);
+    filter: brightness(1.15);
+  }
+
+  .btn-record {
+    background: var(--rust);
+    color: #fff;
+    border: 1px solid var(--rust);
+  }
+  .btn-record.recording {
+    animation: pulse 1s infinite alternate;
+  }
+  @keyframes pulse {
+    from { filter: brightness(1); }
+    to { filter: brightness(1.4); box-shadow: 0 0 20px rgba(255,43,43,0.6); }
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--ceramic);
+    border: 1px solid var(--line);
+  }
+  .btn-secondary:hover {
+    border-color: var(--chassis);
+  }
+
+  /* Player Area */
+  .player-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .video-stage {
+    width: 1280px;
+    height: 720px;
+    background: var(--panel-deep);
+    border: 1px solid var(--line);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.85), 0 0 40px rgba(17,15,255,0.12);
+  }
+
+  /* Scanlines */
+  .video-stage::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(0,0,0,0.15) 2px 4px);
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  /* Ambient Glow */
+  .glow-radial {
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    right: -250px;
+    bottom: -350px;
+    background: radial-gradient(circle, rgba(17,15,255,0.35) 0%, rgba(17,15,255,0.06) 45%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 48px 64px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+    z-index: 2;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .slide-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--chassis);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dot-green {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 10px var(--success);
+  }
+
+  .timer-pill {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--asphalt);
+  }
+
+  h1.title {
+    font-size: 48px;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+
+  h1.title em {
+    font-style: normal;
+    color: var(--cobalt);
+    text-shadow: 0 0 30px rgba(17,15,255,0.8);
+  }
+
+  p.desc {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--chassis);
+    max-width: 900px;
+    margin-bottom: 24px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: auto;
+  }
+
+  .card-item {
+    background: rgba(16,16,16,0.8);
+    border: 1px solid var(--line);
+    padding: 20px;
+    border-radius: 2px;
+  }
+
+  .card-item .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--asphalt);
+    margin-bottom: 8px;
+  }
+
+  .card-item h3 {
+    font-size: 16px;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .card-item p {
+    font-size: 13px;
+    color: var(--chassis);
+    line-height: 1.4;
+  }
+
+  .card-item.highlight {
+    background: rgba(17,15,255,0.12);
+    border-color: rgba(17,15,255,0.6);
+  }
+
+  .card-item.highlight h3 {
+    color: #9C9BFF;
+  }
+
+  .card-item.success {
+    background: rgba(0,255,102,0.06);
+    border-color: rgba(0,255,102,0.4);
+  }
+
+  .card-item.success h3 {
+    color: var(--success);
+  }
+
+  /* Mock UI Window */
+  .mock-ui {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 10px;
+  }
+
+  .mock-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
+
+  .window-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--asphalt);
+  }
+
+  .window-url {
+    font-size: 11px;
+    color: var(--chassis);
+    background: var(--panel-deep);
+    padding: 4px 12px;
+    border-radius: 2px;
+    flex: 1;
+  }
+
+  /* Subtitle bar */
+  .voiceover-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 32px;
+    background: rgba(11,11,11,0.95);
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 60;
+  }
+
+  .voice-speaker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--success);
+    background: rgba(0,255,102,0.1);
+    border: 1px solid var(--success);
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .voice-text {
+    font-size: 14px;
+    line-height: 1.4;
+    color: #fff;
+    flex: 1;
+  }
+
+  /* Progress bar */
+  .progress-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--panel);
+    z-index: 70;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--cobalt);
+    box-shadow: 0 0 10px var(--cobalt);
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* Success Notification Card */
+  .export-banner {
+    display: none;
+    max-width: 1280px;
+    width: 100%;
+    margin-top: 16px;
+    padding: 16px 24px;
+    background: rgba(0,255,102,0.08);
+    border: 1px solid var(--success);
+    border-radius: 3px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  .export-banner.show {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  footer.studio-foot {
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-deep);
+    border-top: 1px solid var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--chassis);
+  }
+
+  .timeline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .timeline-step {
+    width: 28px;
+    height: 28px;
+    border-radius: 2px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .timeline-step.active {
+    background: var(--cobalt);
+    color: #fff;
+    border-color: var(--cobalt);
+  }
+</style>
+</head>
+<body>
+
+<header class="studio-nav">
+  <div class="brand">
+    <svg width="24" height="24" viewBox="0 0 512 512">
+      <rect width="512" height="512" rx="118" fill="#110FFF" />
+      <path d="M133,172 h96 v72 h-48 v32 h48 v64 h-96 z" fill="#F5F5F5" />
+      <path d="M283,172 h96 v72 h-48 v32 h48 v64 h-96 z" fill="#F5F5F5" />
+    </svg>
+    <span>PYTHIA // GENLAYER DEMO STUDIO</span>
+    <span class="badge">STUDIO NEXT v0.6</span>
+    <span class="badge badge-live">CHAIN 61997</span>
+  </div>
+
+  <div class="controls">
+    <select id="voiceSelect" class="voice-select" title="Choose Human Natural Voice">
+      <option value="">🎙️ Loading Natural Voices...</option>
+    </select>
+    <button id="btnPrev" class="btn btn-secondary">◀ Prev</button>
+    <button id="btnPlay" class="btn btn-primary">▶ Play Presentation</button>
+    <button id="btnNext" class="btn btn-secondary">Next ▶</button>
+    <button id="btnRecord" class="btn btn-record">⏺ Record & Save MP4 to PC</button>
+  </div>
+</header>
+
+<div class="player-wrapper">
+  <div class="video-stage" id="stage">
+    <div class="progress-container">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="glow-radial"></div>
+
+    <!-- SLIDE 1: Title & Problem Hook -->
+    <div class="slide active" data-duration="24" data-voice="Welcome to Pythia. Today's AI models scrape human articles, books, and social posts to answer user prompts, without attributing or paying the creators who wrote them. Worse, centralized AI hallucinates fake sources with zero cryptographic accountability, while legacy smart contracts are blind to the live web. Pythia changes this forever.">
+      <div class="slide-header">
+        <div class="eyebrow"><span class="dot-green"></span>01 / THE AGENTIC ECONOMY DILEMMA</div>
+        <div class="timer-pill">0:00 - 0:24</div>
+      </div>
+      <h1 class="title">A Citation Is <em>A Payment</em>.</h1>
+      <p class="desc">
+        AI models scrape the human web for free while hallucinating citations. Traditional blockchains cannot browse or verify live content. Pythia introduces verifiable decentralized truth and autonomous creator micro-licensing.
+      </p>
+
+      <div class="card-grid">
+        <div class="card-item">
+          <div class="num">PROBLEM 01</div>
+          <h3>Uncompensated Content</h3>
+          <p>Creators receive zero value when LLMs answer questions based on their writing.</p>
+        </div>
+        <div class="card-item highlight">
+          <div class="num">PROBLEM 02</div>
+          <h3>Hallucinated Citations</h3>
+          <p>Centralized AI synthesizes fictitious quotes and sources without accountability.</p>
+        </div>
+        <div class="card-item">
+          <div class="num">PROBLEM 03</div>
+          <h3>Smart Contract Blindness</h3>
+          <p>EVM contracts cannot read or reason about live web data without centralized oracles.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: Dual-Chain Solution -->
+    <div class="slide" data-duration="26" data-voice="Pythia solves this by pairing GenLayer Intelligent Contracts with Arc Testnet's sub-cent USDC settlements. On GenLayer Studio Next, independent validators render live web pages, calculate SHA-256 evidence hashes, and reach BFT consensus on citations. On Arc Testnet, automated USDC micropayments settle directly to the verified creator's wallet.">
+      <div class="slide-header">
+        <div class="eyebrow"><span class="dot-green"></span>02 / DUAL-CHAIN ARCHITECTURE</div>
+        <div class="timer-pill">0:25 - 0:50</div>
+      </div>
+      <h1 class="title">Decentralized AI + <em>Native Settlement</em>.</h1>
+      <p class="desc">
+        We decouple consensus reasoning from financial settlement. GenLayer acts as the supreme court of qualitative attribution, while Arc Testnet executes lightning-fast micro-licensing payouts.
+      </p>
+
+      <div class="card-grid">
+        <div class="card-item highlight">
+          <div class="num">REASONING LAYER</div>
+          <h3>GenLayer Studio Next</h3>
+          <p>Chain ID 61997. Multi-validator consensus on semantic equivalence (Consensus v0.6) with cryptographic evidence checking.</p>
+        </div>
+        <div class="card-item success">
+          <div class="num">SETTLEMENT LAYER</div>
+          <h3>Arc Testnet (USDC)</h3>
+          <p>Instant sub-cent financial rails. 80% creator share settled directly to author upon citation acceptance.</p>
+        </div>
+        <div class="card-item">
+          <div class="num">PRIVACY LAYER</div>
+          <h3>Zero-Address Proofs</h3>
+          <p>Permanent HMAC tokens. Authors prove ownership across X, Substack, and blogs without exposing their wallet address.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: Creator Workflow -->
+    <div class="slide" data-duration="28" data-voice="Let's look at the Creator Workflow. An author connects their EVM wallet from the top bar. Pythia generates a permanent, zero-address verification code: pythia_verify. The creator pastes this code into an X post, blog, or meta tag, registers the URL, and sets their citation fee, for example five cents.">
+      <div class="slide-header">
+        <div class="eyebrow"><span class="dot-green"></span>03 / CREATOR WORKFLOW: REGISTER & PRICE</div>
+        <div class="timer-pill">0:50 - 1:18</div>
+      </div>
+      <h1 class="title">Register, Verify & <em>Set Your Price</em>.</h1>
+      <p class="desc">
+        Creators claim ownership across any platform—X, Substack, Medium, or custom blogs—using zero-address cryptographic proofs that protect their on-chain financial privacy.
+      </p>
+
+      <div class="mock-ui">
+        <div class="mock-header">
+          <span class="window-dot" style="background:#FF2B2B"></span>
+          <span class="window-dot" style="background:#FFBF00"></span>
+          <span class="window-dot" style="background:#00FF66"></span>
+          <span class="window-url">https://citeflow.app/register-article</span>
+        </div>
+        <div style="font-size:13px; line-height: 1.8;">
+          <p style="color:var(--asphalt);">// 1. Permanent Reusable Creator Code</p>
+          <p style="color:var(--success);">pythia_verify_e4b5ddb507662a30991912c3ad5d910f</p>
+          <p style="color:var(--asphalt); margin-top:8px;">// 2. URL & Citation Fee Configuration</p>
+          <p style="color:#CACACA;">Target URL: <span style="color:#9C9BFF;">https://x.com/stratton001/status/2100352044867428566</span></p>
+          <p style="color:#CACACA;">Citation Fee: <span style="color:var(--success); font-weight:700;">$0.05 USDC</span> · Ownership Proof: <span style="color:var(--success);">VERIFIED</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: Autonomous Research & Consensus -->
+    <div class="slide" data-duration="32" data-voice="Now for research. A user asks: How does Pythia automate creator micro-licensing payments? The agent retrieves candidate sources off-chain, then hands the evidence to our Intelligent Contract on GenLayer Studio Next. Independent validators independently fetch the target URL, verify evidence hashes, execute LLM inference, and reach consensus on cited sources.">
+      <div class="slide-header">
+        <div class="eyebrow"><span class="dot-green"></span>04 / LIVE RESEARCH: BFT CONSENSUS</div>
+        <div class="timer-pill">1:18 - 1:50</div>
+      </div>
+      <h1 class="title">Verifiable Attribution via <em>GenVM</em>.</h1>
+      <p class="desc">
+        GenLayer validators execute independent web fetches and comparative equivalence checks. If an author's page was tampered with or fails to answer the query, the contract detects the discrepancy and refuses to charge.
+      </p>
+
+      <div class="mock-ui">
+        <div class="mock-header">
+          <span class="window-dot" style="background:#110FFF"></span>
+          <span class="window-url">GenLayer Studio Next Contract: 0x631578596e9c33ce5a969Fa99b856Bfb8AFc7ceA</span>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size:12px;">
+          <div>
+            <p style="color:var(--asphalt);">// Validator Independent Web Verification</p>
+            <p style="color:#9C9BFF;">gl.nondet.web.request(url) -> 200 OK</p>
+            <p style="color:var(--chassis);">Evidence Hash: <span style="color:var(--success);">MATCHED (SHA-256)</span></p>
+            <p style="color:var(--chassis);">Equivalence Principle: <span style="color:var(--success);">prompt_comparative BFT ACCEPTED</span></p>
+          </div>
+          <div style="border-left: 1px solid var(--line); padding-left: 16px;">
+            <p style="color:var(--asphalt);">// Grounded Synthesis Output</p>
+            <p style="color:var(--ceramic);">Answer: <span style="color:var(--chassis);">"Pythia triggers native USDC settlements via cryptographic authorization receipts upon GenLayer consensus..."</span></p>
+            <p style="color:var(--success); margin-top:6px;">Citations Accepted: ["x.com/stratton001"]</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: Settlement & Creator Dashboard -->
+    <div class="slide" data-duration="24" data-voice="When the citation is accepted, a cryptographic authorization receipt triggers instant USDC settlement on Arc Testnet directly to the creator. In the Creator Console, authors view their earnings ledger, edit their citation fees in real time, or remove sources with safe vector unindexing.">
+      <div class="slide-header">
+        <div class="eyebrow"><span class="dot-green"></span>05 / SETTLEMENT & CREATOR CONSOLE</div>
+        <div class="timer-pill">1:50 - 2:14</div>
+      </div>
+      <h1 class="title">Instant Settlement & <em>Full Control</em>.</h1>
+      <p class="desc">
+        Creators earn 80% of every citation fee settled in USDC. The dashboard provides complete lifecycle management: real-time inline fee editing and safe source deletion.
+      </p>
+
+      <div class="card-grid">
+        <div class="card-item success">
+          <div class="num">EARNINGS LEDGER</div>
+          <h3>80% Creator Share</h3>
+          <p>Direct USDC settlement on Arc Testnet. Verifiable transaction hashes and receipt signatures.</p>
+        </div>
+        <div class="card-item highlight">
+          <div class="num">LIFECYCLE MANAGEMENT</div>
+          <h3>Inline Fee Editor</h3>
+          <p>Update citation licensing fees from 0.00 to 100.00 USDC in one click with instant validation.</p>
+        </div>
+        <div class="card-item">
+          <div class="num">UNINDEXING SAFETY</div>
+          <h3>Delete Registered Source</h3>
+          <p>Safely removes chunks from AI retrieval while permanently preserving historical earnings receipts.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: Hackathon Summary -->
+    <div class="slide" data-duration="20" data-voice="In summary, Pythia transforms AI citations into economic value. Built for the GenLayer Hackathon on Studio Next, fully compliant with Consensus v0.6, Transaction Kit RC2, and live on Chain 61997. Attribution without payment is a screenshot. Payment without verifiable attribution is a guess. Thank you.">
+      <div class="slide-header">
+        <div class="eyebrow"><span class="dot-green"></span>06 / HACKATHON SUMMARY & CONCLUSION</div>
+        <div class="timer-pill">2:14 - 2:34</div>
+      </div>
+      <h1 class="title">Built on <em>GenLayer Studio Next</em>.</h1>
+      <p class="desc">
+        "Attribution without payment is a screenshot. Payment without verifiable attribution is a guess."
+      </p>
+
+      <div class="mock-ui">
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; font-size:12px; text-align:center;">
+          <div style="background:var(--panel-deep); padding: 12px; border: 1px solid var(--line);">
+            <p style="color:var(--asphalt); font-size:10px;">NETWORK</p>
+            <p style="color:#9C9BFF; font-weight:700; margin-top:4px;">Studio Next</p>
+          </div>
+          <div style="background:var(--panel-deep); padding: 12px; border: 1px solid var(--line);">
+            <p style="color:var(--asphalt); font-size:10px;">CHAIN ID</p>
+            <p style="color:var(--ceramic); font-weight:700; margin-top:4px;">61997</p>
+          </div>
+          <div style="background:var(--panel-deep); padding: 12px; border: 1px solid var(--line);">
+            <p style="color:var(--asphalt); font-size:10px;">CONSENSUS</p>
+            <p style="color:var(--success); font-weight:700; margin-top:4px;">v0.6 Positional</p>
+          </div>
+          <div style="background:var(--panel-deep); padding: 12px; border: 1px solid var(--line);">
+            <p style="color:var(--asphalt); font-size:10px;">INTELLIGENT CONTRACT</p>
+            <p style="color:var(--chassis); font-size:10px; margin-top:4px; font-family:monospace;">0x6315...7ceA</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voiceover subtitle bar -->
+    <div class="voiceover-bar">
+      <span class="voice-speaker">Human Voice</span>
+      <span class="voice-text" id="voiceText">Welcome to Pythia. Today's AI models scrape human articles, books, and social posts to answer user prompts, without attributing or paying the creators who wrote them...</span>
+    </div>
+  </div>
+
+  <!-- Export Status Banner -->
+  <div id="exportBanner" class="export-banner">
+    <p style="color:var(--success); font-weight:700; margin-bottom:4px;">🎉 VIDEO FILE SAVED DIRECTLY TO YOUR PC!</p>
+    <p id="exportBannerDetails" style="color:var(--chassis); font-size:12px;"></p>
+  </div>
+</div>
+
+<footer class="studio-foot">
+  <div class="timeline" id="timeline">
+    <div class="timeline-step active" onclick="goToSlide(0)">01</div>
+    <div class="timeline-step" onclick="goToSlide(1)">02</div>
+    <div class="timeline-step" onclick="goToSlide(2)">03</div>
+    <div class="timeline-step" onclick="goToSlide(3)">04</div>
+    <div class="timeline-step" onclick="goToSlide(4)">05</div>
+    <div class="timeline-step" onclick="goToSlide(5)">06</div>
+  </div>
+  <div>PRESS [SPACE] TO PLAY/PAUSE · [ARROW KEYS] TO NAVIGATE</div>
+  <div>1080P DEMO STUDIO // GENLAYER HACKATHON</div>
+</footer>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const timelineSteps = document.querySelectorAll('.timeline-step');
+  const voiceText = document.getElementById('voiceText');
+  const progressFill = document.getElementById('progressFill');
+  const btnPlay = document.getElementById('btnPlay');
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnRecord = document.getElementById('btnRecord');
+  const voiceSelect = document.getElementById('voiceSelect');
+  const exportBanner = document.getElementById('exportBanner');
+  const exportBannerDetails = document.getElementById('exportBannerDetails');
+
+  let currentSlide = 0;
+  let isPlaying = false;
+  let timerInterval = null;
+  let slideTimeElapsed = 0;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let availableVoices = [];
+  let selectedVoice = null;
+
+  // Populate Natural / Human Voices
+  function loadVoices() {
+    if (!('speechSynthesis' in window)) return;
+    availableVoices = window.speechSynthesis.getVoices();
+
+    if (availableVoices.length === 0) return;
+
+    voiceSelect.innerHTML = '';
+
+    // Filter and sort for natural / high quality human voices
+    const naturalVoices = availableVoices.filter(v => 
+      v.lang.startsWith('en') && (
+        v.name.includes('Natural') ||
+        v.name.includes('Neural') ||
+        v.name.includes('Online') ||
+        v.name.includes('Google')
+      )
+    );
+
+    const standardEnglish = availableVoices.filter(v =>
+      v.lang.startsWith('en') && !naturalVoices.includes(v)
+    );
+
+    const listToDisplay = naturalVoices.length > 0 ? [...naturalVoices, ...standardEnglish] : availableVoices;
+
+    listToDisplay.forEach((v, i) => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      const isNatural = v.name.includes('Natural') || v.name.includes('Neural') || v.name.includes('Google');
+      opt.textContent = `${isNatural ? '🎙️ ' : '🗣️ '}${v.name.replace('Microsoft ', '').replace('Online (Natural)', 'Natural')}`;
+      voiceSelect.appendChild(opt);
+    });
+
+    // Pick the best natural voice by default (Christopher, Guy, Jenny, Aria, or Google)
+    const bestVoice = naturalVoices.find(v => 
+      v.name.includes('Christopher') ||
+      v.name.includes('Guy') ||
+      v.name.includes('Jenny') ||
+      v.name.includes('Google US')
+    ) || naturalVoices[0] || listToDisplay[0];
+
+    if (bestVoice) {
+      voiceSelect.value = bestVoice.name;
+      selectedVoice = bestVoice;
+    }
+  }
+
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+  }
+
+  voiceSelect.addEventListener('change', () => {
+    selectedVoice = availableVoices.find(v => v.name === voiceSelect.value) || null;
+    if (isPlaying) {
+      updateSlideUI();
+    }
+  });
+
+  function updateSlideUI() {
+    slides.forEach((slide, idx) => {
+      slide.classList.toggle('active', idx === currentSlide);
+    });
+    timelineSteps.forEach((step, idx) => {
+      step.classList.toggle('active', idx === currentSlide);
+    });
+
+    const activeSlide = slides[currentSlide];
+    const narration = activeSlide.getAttribute('data-voice');
+    voiceText.textContent = narration;
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(narration);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      utterance.rate = 0.98; // natural conversational pacing
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  function goToSlide(index) {
+    if (index < 0 || index >= slides.length) return;
+    currentSlide = index;
+    slideTimeElapsed = 0;
+    progressFill.style.width = '0%';
+    updateSlideUI();
+  }
+
+  function nextSlide() {
+    if (currentSlide < slides.length - 1) {
+      goToSlide(currentSlide + 1);
+    } else {
+      pausePlayback();
+      goToSlide(0);
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        stopRecordingAndSave();
+      }
+    }
+  }
+
+  function prevSlide() {
+    if (currentSlide > 0) {
+      goToSlide(currentSlide - 1);
+    }
+  }
+
+  function startPlayback() {
+    isPlaying = true;
+    btnPlay.textContent = '⏸ Pause';
+    slideTimeElapsed = 0;
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      const activeSlide = slides[currentSlide];
+      const duration = parseInt(activeSlide.getAttribute('data-duration') || '20', 10);
+      slideTimeElapsed += 0.1;
+      const pct = Math.min((slideTimeElapsed / duration) * 100, 100);
+      progressFill.style.width = pct + '%';
+
+      if (slideTimeElapsed >= duration) {
+        slideTimeElapsed = 0;
+        nextSlide();
+      }
+    }, 100);
+
+    updateSlideUI();
+  }
+
+  function pausePlayback() {
+    isPlaying = false;
+    btnPlay.textContent = '▶ Play Presentation';
+    clearInterval(timerInterval);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  btnPlay.addEventListener('click', () => {
+    if (isPlaying) pausePlayback();
+    else startPlayback();
+  });
+
+  btnPrev.addEventListener('click', prevSlide);
+  btnNext.addEventListener('click', nextSlide);
+
+  // Keyboard navigation
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (isPlaying) pausePlayback();
+      else startPlayback();
+    } else if (e.code === 'ArrowRight') {
+      nextSlide();
+    } else if (e.code === 'ArrowLeft') {
+      prevSlide();
+    }
+  });
+
+  // Stop recording and send to backend for FFmpeg conversion & local disk placement
+  async function stopRecordingAndSave() {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+    mediaRecorder.stop();
+    btnRecord.classList.remove('recording');
+    btnRecord.textContent = '⏳ Processing MP4 Video...';
+    pausePlayback();
+  }
+
+  // Record Stage via getDisplayMedia
+  btnRecord.addEventListener('click', async () => {
+    if (btnRecord.classList.contains('recording')) {
+      await stopRecordingAndSave();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: 'always', frameRate: 30 },
+        audio: true
+      });
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        btnRecord.textContent = '⏳ Transcoding MP4 via FFmpeg...';
+
+        try {
+          const formData = new FormData();
+          formData.append('video', blob, 'pythia-demo-video.webm');
+
+          const res = await fetch('/api/save-demo-video', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await res.json();
+          btnRecord.textContent = '⏺ Record & Save MP4 to PC';
+
+          if (res.ok && result.success) {
+            exportBanner.classList.add('show');
+            exportBannerDetails.innerHTML = `
+              <strong>File Name:</strong> pythia-demo-video.mp4<br>
+              <strong>Saved on your PC at:</strong><br>
+              • <code>C:\\Users\\pc\\Desktop\\pythia-demo-video.mp4</code><br>
+              • <code>C:\\Users\\pc\\Downloads\\pythia-demo-video.mp4</code><br>
+              • <code>c:\\Users\\pc\\citeflow-genlayer\\assets\\pitch\\pythia-demo-video.mp4</code><br><br>
+              Ready to double-click and upload directly to YouTube or DoraHacks!
+            `;
+          } else {
+            // Trigger standard browser download fallback
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pythia-demo-video.webm';
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        } catch (postErr) {
+          console.error(postErr);
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'pythia-demo-video.webm';
+          a.click();
+          URL.revokeObjectURL(url);
+          btnRecord.textContent = '⏺ Record & Save MP4 to PC';
+        }
+      };
+
+      mediaRecorder.start();
+      btnRecord.classList.add('recording');
+      btnRecord.textContent = '⏹ Stop & Export Video';
+
+      // Auto start from slide 0
+      goToSlide(0);
+      startPlayback();
+
+    } catch (err) {
+      alert('Screen capture cancelled or unavailable. You can also use Windows Game Bar (Win+Alt+R) to record the screen while the presentation autoplays!');
+    }
+  });
+
+  // Initial trigger
+  updateSlideUI();
+</script>
+</body>
+</html>

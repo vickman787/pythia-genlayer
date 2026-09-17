@@ -1,0 +1,47 @@
+{
+  "name": "pythia-genlayer",
+  "version": "1.0.0",
+  "description": "Pythia Protocol: Verifiable Attribution & Autonomous Micro-Licensing on GenLayer Studio Next",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit --incremental false",
+    "deploy:genlayer": "tsx scripts/deploy-genlayer.ts",
+    "verify:genlayer": "tsx scripts/verify-genlayer.ts"
+  },
+  "dependencies": {
+    "@genlayer/transaction-kit": "^0.1.0-rc.2",
+    "@genlayer/transaction-kit-react": "^0.1.0-rc.2",
+    "@rainbow-me/rainbowkit": "^2.2.11",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.0",
+    "@tanstack/react-query": "^5.102.8",
+    "genlayer-js": "^2.0.0-rc.1",
+    "google-tts-api": "^2.0.2",
+    "lucide-react": "^1.22.0",
+    "next": "16.2.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "viem": "^2.56.5",
+    "wagmi": "^2.19.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@x402/core": "^2.26.0",
+    "@x402/evm": "^2.26.0",
+    "@x402/extensions": "^2.26.0",
+    "@x402/svm": "^2.26.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
+  }
+}
